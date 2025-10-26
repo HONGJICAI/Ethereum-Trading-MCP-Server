@@ -1,8 +1,29 @@
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use ethers::prelude::*;
 use rust_decimal::Decimal;
 use std::str::FromStr;
 use std::sync::Arc;
+
+/// Trait for Ethereum client operations
+#[async_trait]
+pub trait EthereumClientTrait: Send + Sync {
+    /// Get ETH balance for an address
+    async fn get_eth_balance(&self, address: Address) -> Result<Decimal>;
+
+    /// Get ERC20 token balance for an address
+    async fn get_token_balance(
+        &self,
+        token_address: Address,
+        wallet_address: Address,
+    ) -> Result<(Decimal, u8)>;
+
+    /// Get token symbol
+    async fn get_token_symbol(&self, token_address: Address) -> Result<String>;
+
+    /// Get wallet address
+    fn get_wallet_address(&self) -> Address;
+}
 
 pub struct EthereumClient {
     provider: Arc<Provider<Http>>,
@@ -105,5 +126,28 @@ impl EthereumClient {
             .context("Failed to get token symbol")?;
 
         Ok(symbol)
+    }
+}
+
+#[async_trait]
+impl EthereumClientTrait for EthereumClient {
+    async fn get_eth_balance(&self, address: Address) -> Result<Decimal> {
+        self.get_eth_balance(address).await
+    }
+
+    async fn get_token_balance(
+        &self,
+        token_address: Address,
+        wallet_address: Address,
+    ) -> Result<(Decimal, u8)> {
+        self.get_token_balance(token_address, wallet_address).await
+    }
+
+    async fn get_token_symbol(&self, token_address: Address) -> Result<String> {
+        self.get_token_symbol(token_address).await
+    }
+
+    fn get_wallet_address(&self) -> Address {
+        self.wallet.address()
     }
 }

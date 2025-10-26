@@ -1,5 +1,5 @@
 use super::Tool;
-use crate::ethereum::{EthereumClient, UniswapV2Router};
+use crate::ethereum::{EthereumClientTrait, UniswapRouterTrait};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use ethers::prelude::*;
@@ -14,13 +14,13 @@ const WETH_ADDRESS: &str = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 // USDC address on Ethereum mainnet (for USD pricing)
 const USDC_ADDRESS: &str = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
-pub struct GetTokenPriceTool {
-    client: Arc<EthereumClient>,
-    uniswap: Arc<UniswapV2Router>,
+pub struct GetTokenPriceTool<C: EthereumClientTrait, U: UniswapRouterTrait> {
+    client: Arc<C>,
+    uniswap: Arc<U>,
 }
 
-impl GetTokenPriceTool {
-    pub fn new(client: Arc<EthereumClient>, uniswap: Arc<UniswapV2Router>) -> Self {
+impl<C: EthereumClientTrait, U: UniswapRouterTrait> GetTokenPriceTool<C, U> {
+    pub fn new(client: Arc<C>, uniswap: Arc<U>) -> Self {
         Self { client, uniswap }
     }
 }
@@ -44,7 +44,9 @@ struct GetTokenPriceResult {
 }
 
 #[async_trait]
-impl Tool for GetTokenPriceTool {
+impl<C: EthereumClientTrait + 'static, U: UniswapRouterTrait + 'static> Tool
+    for GetTokenPriceTool<C, U>
+{
     fn name(&self) -> &str {
         "get_token_price"
     }

@@ -52,8 +52,15 @@ cargo test
 ```
 
 And integration tests (optional)
+
 ```bash
 cargo test --test integration_tests -- --ignored --nocapture
+```
+
+Test with coverage (optional)
+
+```bash
+cargo tarpaulin --out Html --output-dir coverage --exclude-files "target/*"
 ```
 
 6. Run the server:
@@ -167,12 +174,14 @@ Etherscan [url](https://etherscan.io/address/0xd8dA6BF26964aF9D7eEd9e03E53415D37
 }
 ```
 
-### Call swap_tokens (Simulation)
+### Call get_token_price
+
+Get the price of UNI token in USD.
 
 **Request:**
 
 ```json
-{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"swap_tokens","arguments":{"from_token":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","to_token":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48","amount":"1.0","slippage_tolerance":0.5}}}
+{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"get_token_price","arguments":{"token_address":"0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984","quote_currency":"USD"}}}
 ```
 
 **Response:**
@@ -181,6 +190,56 @@ Etherscan [url](https://etherscan.io/address/0xd8dA6BF26964aF9D7eEd9e03E53415D37
 {
   "jsonrpc": "2.0",
   "id": 4,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"token_address\": \"0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984\",\n  \"price\": \"8.50\",\n  \"quote_currency\": \"USD\"\n}"
+      }
+    ]
+  }
+}
+```
+
+Get the price of UNI token in ETH.
+
+**Request:**
+
+```json
+{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"get_token_price","arguments":{"token_address":"0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984","quote_currency":"ETH"}}}
+```
+
+**Response:**
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"token_address\": \"0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984\",\n  \"price\": \"0.00243\",\n  \"quote_currency\": \"ETH\"\n}"
+      }
+    ]
+  }
+}
+```
+
+### Call swap_tokens (Simulation)
+
+**Request:**
+
+```json
+{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"swap_tokens","arguments":{"from_token":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","to_token":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48","amount":"1.0","slippage_tolerance":0.5}}}
+```
+
+**Response:**
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 6,
   "result": {
     "content": [
       {

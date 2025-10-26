@@ -1,5 +1,5 @@
 use super::Tool;
-use crate::ethereum::EthereumClient;
+use crate::ethereum::EthereumClientTrait;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use ethers::prelude::*;
@@ -7,12 +7,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::sync::Arc;
 
-pub struct GetBalanceTool {
-    client: Arc<EthereumClient>,
+pub struct GetBalanceTool<C: EthereumClientTrait> {
+    client: Arc<C>,
 }
 
-impl GetBalanceTool {
-    pub fn new(client: Arc<EthereumClient>) -> Self {
+impl<C: EthereumClientTrait> GetBalanceTool<C> {
+    pub fn new(client: Arc<C>) -> Self {
         Self { client }
     }
 }
@@ -32,7 +32,7 @@ struct GetBalanceResult {
 }
 
 #[async_trait]
-impl Tool for GetBalanceTool {
+impl<C: EthereumClientTrait + 'static> Tool for GetBalanceTool<C> {
     fn name(&self) -> &str {
         "get_balance"
     }
