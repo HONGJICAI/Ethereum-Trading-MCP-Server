@@ -2,6 +2,9 @@ mod get_balance;
 mod get_token_price;
 mod swap_tokens;
 
+#[cfg(test)]
+mod tests;
+
 pub use get_balance::GetBalanceTool;
 pub use get_token_price::GetTokenPriceTool;
 pub use swap_tokens::SwapTokensTool;

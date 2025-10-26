@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use ethers::prelude::*;
 use rust_decimal::Decimal;
 use std::str::FromStr;
@@ -6,6 +7,36 @@ use std::sync::Arc;
 
 // Uniswap V2 Router address on Ethereum mainnet
 const UNISWAP_V2_ROUTER: &str = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
+
+#[derive(Debug, Clone)]
+pub struct SwapSimulation {
+    pub amount_in: U256,
+    pub amount_out: U256,
+    pub gas_estimate: U256,
+    pub gas_price: U256,
+    pub gas_cost: U256,
+}
+
+/// Trait for Uniswap router operations
+#[async_trait]
+pub trait UniswapRouterTrait: Send + Sync {
+    /// Simulate a token swap and return expected output amount
+    async fn simulate_swap(
+        &self,
+        from_token: Address,
+        to_token: Address,
+        amount_in: U256,
+        wallet_address: Address,
+    ) -> Result<SwapSimulation>;
+
+    /// Get the best price for a token pair
+    async fn get_price(
+        &self,
+        from_token: Address,
+        to_token: Address,
+        amount_in: U256,
+    ) -> Result<Decimal>;
+}
 
 pub struct UniswapV2Router {
     provider: Arc<Provider<Http>>,
@@ -122,11 +153,25 @@ impl UniswapV2Router {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct SwapSimulation {
-    pub amount_in: U256,
-    pub amount_out: U256,
-    pub gas_estimate: U256,
-    pub gas_price: U256,
-    pub gas_cost: U256,
+#[async_trait]
+impl UniswapRouterTrait for UniswapV2Router {
+    async fn simulate_swap(
+        &self,
+        from_token: Address,
+        to_token: Address,
+        amount_in: U256,
+        wallet_address: Address,
+    ) -> Result<SwapSimulation> {
+        self.simulate_swap(from_token, to_token, amount_in, wallet_address)
+            .await
+    }
+
+    async fn get_price(
+        &self,
+        from_token: Address,
+        to_token: Address,
+        amount_in: U256,
+    ) -> Result<Decimal> {
+        self.get_price(from_token, to_token, amount_in).await
+    }
 }

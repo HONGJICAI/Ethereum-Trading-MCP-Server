@@ -1,5 +1,5 @@
 use super::Tool;
-use crate::ethereum::{EthereumClient, UniswapV2Router};
+use crate::ethereum::{EthereumClientTrait, UniswapRouterTrait};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use ethers::prelude::*;
@@ -10,13 +10,13 @@ use serde_json::{json, Value};
 use std::str::FromStr;
 use std::sync::Arc;
 
-pub struct SwapTokensTool {
-    client: Arc<EthereumClient>,
-    uniswap: Arc<UniswapV2Router>,
+pub struct SwapTokensTool<C: EthereumClientTrait, U: UniswapRouterTrait> {
+    client: Arc<C>,
+    uniswap: Arc<U>,
 }
 
-impl SwapTokensTool {
-    pub fn new(client: Arc<EthereumClient>, uniswap: Arc<UniswapV2Router>) -> Self {
+impl<C: EthereumClientTrait, U: UniswapRouterTrait> SwapTokensTool<C, U> {
+    pub fn new(client: Arc<C>, uniswap: Arc<U>) -> Self {
         Self { client, uniswap }
     }
 }
@@ -48,7 +48,9 @@ struct SwapTokensResult {
 }
 
 #[async_trait]
-impl Tool for SwapTokensTool {
+impl<C: EthereumClientTrait + 'static, U: UniswapRouterTrait + 'static> Tool
+    for SwapTokensTool<C, U>
+{
     fn name(&self) -> &str {
         "swap_tokens"
     }
@@ -106,7 +108,7 @@ impl Tool for SwapTokensTool {
             .context("Failed to convert amount to U256")?;
 
         // Get wallet address
-        let wallet_address = self.client.get_wallet().address();
+        let wallet_address = self.client.get_wallet_address();
 
         // Simulate the swap
         let simulation = self
