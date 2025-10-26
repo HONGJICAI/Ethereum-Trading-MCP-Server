@@ -15,6 +15,7 @@ This is a Model Context Protocol (MCP) server in Rust that are able to query bal
 ### Prerequisites
 
 - Rust 1.70+ (`rustup` recommended)
+- Python 3.11+ (if test mcp server automatically)
 - An Ethereum RPC endpoint (Infura, Alchemy, or public endpoint)
 - A private key for transaction signing (for simulation only)
 
@@ -71,6 +72,24 @@ cargo run --release
 
 The server reads JSON-RPC requests from stdin and writes responses to stdout.
 
+## Automatic Test
+
+Use python mcp client to test our mcp server.
+
+1. Install python.
+
+2. Install dependency.
+
+```bash
+pip install "mcp[cli]"
+```
+
+3. Run python mcp client.
+
+```bash
+python .\python_client_example.py
+```
+
 ## Manual Test
 
 You can either test on console app or web UI.
@@ -87,11 +106,13 @@ Need to install node.js first.
 npx @modelcontextprotocol/inspector cargo run --release
 ```
 
+And then click connect, list tools, tool buttons to test.
+
 ## Example MCP Tool Calls
 
 You need to minify the json before paste to stdin.
 
-Useful tool to minify: [https://codebeautify.org/jsonminifier](JSON Monifier)
+Useful tool to minify: [JSON Monifier](https://codebeautify.org/jsonminifier)
 
 ### Initialize
 
