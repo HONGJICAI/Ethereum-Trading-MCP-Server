@@ -104,6 +104,74 @@ async fn test_get_token_price_tool_with_mock() {
 }
 
 #[tokio::test]
+async fn test_get_token_price_tool_with_symbol() {
+    // Setup mock clients
+    let wallet_addr: Address = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+        .parse()
+        .unwrap();
+    let uni_addr: Address = "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
+        .parse()
+        .unwrap(); // UNI token address
+    let usdc_addr: Address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        .parse()
+        .unwrap();
+
+    let mock_client = MockEthereumClient::new().with_wallet_address(wallet_addr);
+
+    // Price of 1 UNI = 15 USDC
+    let mock_uniswap =
+        MockUniswapRouter::new().with_price(uni_addr, usdc_addr, Decimal::new(15, 0));
+
+    // Create tool with mocks
+    let tool = GetTokenPriceTool::new(Arc::new(mock_client), Arc::new(mock_uniswap));
+
+    // Execute the tool using symbol instead of address
+    let params = json!({
+        "token_symbol": "UNI",
+        "quote_currency": "USD"
+    });
+
+    let result = tool.execute(params).await.unwrap();
+
+    // Verify the result - should resolve UNI symbol to its address
+    assert_eq!(
+        result["token_address"],
+        "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
+    );
+    assert_eq!(result["quote_currency"], "USD");
+    // Price should be multiplied by 10^12 for USDC decimal adjustment (15 * 10^12)
+    assert!(result["price"].as_str().unwrap().contains("15000000000000"));
+}
+
+#[tokio::test]
+async fn test_get_token_price_tool_with_invalid_symbol() {
+    // Setup mock clients
+    let wallet_addr: Address = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+        .parse()
+        .unwrap();
+
+    let mock_client = MockEthereumClient::new().with_wallet_address(wallet_addr);
+    let mock_uniswap = MockUniswapRouter::new();
+
+    // Create tool with mocks
+    let tool = GetTokenPriceTool::new(Arc::new(mock_client), Arc::new(mock_uniswap));
+
+    // Execute the tool with an invalid symbol
+    let params = json!({
+        "token_symbol": "INVALID_TOKEN",
+        "quote_currency": "USD"
+    });
+
+    let result = tool.execute(params).await;
+
+    // Verify the result is an error
+    assert!(result.is_err());
+    let err_msg = result.unwrap_err().to_string();
+    assert!(err_msg.contains("Unknown token symbol"));
+    assert!(err_msg.contains("INVALID_TOKEN"));
+}
+
+#[tokio::test]
 async fn test_swap_tokens_tool_with_mock() {
     // Setup mock clients
     let wallet_addr: Address = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
@@ -239,12 +307,13 @@ fn test_get_token_price_tool_input_schema() {
     // Verify it has properties
     assert!(schema["properties"].is_object());
     assert!(schema["properties"]["token_address"].is_object());
+    assert!(schema["properties"]["token_symbol"].is_object());
     assert!(schema["properties"]["quote_currency"].is_object());
 
-    // Verify required fields
-    assert!(schema["required"].is_array());
-    let required = schema["required"].as_array().unwrap();
-    assert!(required.contains(&json!("token_address")));
+    // Verify oneOf is present (either token_address or token_symbol required)
+    assert!(schema["oneOf"].is_array());
+    let one_of = schema["oneOf"].as_array().unwrap();
+    assert_eq!(one_of.len(), 2);
 
     // Verify quote_currency has enum values
     if let Some(quote_currency) = schema["properties"]["quote_currency"].as_object() {

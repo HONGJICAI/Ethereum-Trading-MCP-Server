@@ -1,55 +1,25 @@
 use crate::config::Config;
 use crate::ethereum::{EthereumClient, UniswapV2Router};
-use crate::tools::{GetBalanceTool, GetTokenPriceTool, SwapTokensTool, Tool};
+use crate::tools::{GetBalanceTool, GetTokenPriceTool, SwapTokensTool, Tool as ToolTrait};
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-use std::collections::HashMap;
-use std::io::{self, BufRead, Write};
+use rmcp::model::*;
+use rmcp::{ErrorData as McpError, RoleServer, ServerHandler};
+use rmcp::service::{RequestContext, NotificationContext};
+use serde_json::json;
 use std::sync::Arc;
-use tracing::{error, info};
+use tracing::info;
 
+#[derive(Clone)]
 pub struct McpServer {
-    tools: HashMap<String, Box<dyn Tool>>,
-    server_info: ServerInfo,
-}
-
-#[derive(Debug, Serialize)]
-struct ServerInfo {
-    name: String,
-    version: String,
-    protocol_version: String,
-}
-
-#[derive(Debug, Deserialize)]
-struct JsonRpcRequest {
-    jsonrpc: String,
-    id: Option<Value>,
-    method: String,
-    params: Option<Value>,
-}
-
-#[derive(Debug, Serialize)]
-struct JsonRpcResponse {
-    jsonrpc: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    id: Option<Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    result: Option<Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    error: Option<JsonRpcError>,
-}
-
-#[derive(Debug, Serialize)]
-struct JsonRpcError {
-    code: i32,
-    message: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    data: Option<Value>,
+    get_balance_tool: Arc<GetBalanceTool<EthereumClient>>,
+    get_token_price_tool: Arc<GetTokenPriceTool<EthereumClient, UniswapV2Router>>,
+    swap_tokens_tool: Arc<SwapTokensTool<EthereumClient, UniswapV2Router>>,
 }
 
 impl McpServer {
     pub async fn new(config: Config) -> Result<Self> {
+        info!("Initializing Ethereum Trading MCP Server");
+
         // Initialize Ethereum client
         let client = Arc::new(
             EthereumClient::new(&config.eth_rpc_url, &config.private_key, config.chain_id)
@@ -60,159 +30,160 @@ impl McpServer {
         // Initialize Uniswap router
         let uniswap = Arc::new(UniswapV2Router::new(client.get_provider()));
 
-        // Register tools
-        let mut tools: HashMap<String, Box<dyn Tool>> = HashMap::new();
+        // Create tool instances
+        let get_balance_tool = Arc::new(GetBalanceTool::new(client.clone()));
+        let get_token_price_tool = Arc::new(GetTokenPriceTool::new(client.clone(), uniswap.clone()));
+        let swap_tokens_tool = Arc::new(SwapTokensTool::new(client.clone(), uniswap.clone()));
 
-        let get_balance = Box::new(GetBalanceTool::new(Arc::clone(&client)));
-        tools.insert(get_balance.name().to_string(), get_balance);
-
-        let get_token_price = Box::new(GetTokenPriceTool::new(
-            Arc::clone(&client),
-            Arc::clone(&uniswap),
-        ));
-        tools.insert(get_token_price.name().to_string(), get_token_price);
-
-        let swap_tokens = Box::new(SwapTokensTool::new(
-            Arc::clone(&client),
-            Arc::clone(&uniswap),
-        ));
-        tools.insert(swap_tokens.name().to_string(), swap_tokens);
-
-        let server_info = ServerInfo {
-            name: "Ethereum Trading MCP Server".to_string(),
-            version: "0.1.0".to_string(),
-            protocol_version: "2024-11-05".to_string(),
-        };
-
-        Ok(Self { tools, server_info })
+        Ok(Self {
+            get_balance_tool,
+            get_token_price_tool,
+            swap_tokens_tool,
+        })
     }
 
-    pub async fn run(&self) -> Result<()> {
-        info!("MCP Server started, waiting for requests on stdin");
+    async fn handle_get_balance(&self, params_value: serde_json::Value) -> Result<CallToolResult, String> {
+        let result = self.get_balance_tool
+            .execute(params_value)
+            .await
+            .map_err(|e| format!("Failed to get balance: {}", e))?;
 
-        let stdin = io::stdin();
-        let mut stdout = io::stdout();
+        let json_str = serde_json::to_string_pretty(&result)
+            .map_err(|e| format!("Failed to serialize result: {}", e))?;
 
-        for line in stdin.lock().lines() {
-            let line = line.context("Failed to read line from stdin")?;
-
-            if line.trim().is_empty() {
-                continue;
-            }
-
-            let response = self.handle_request(&line).await;
-            let response_json = serde_json::to_string(&response)?;
-
-            writeln!(stdout, "{}", response_json)?;
-            stdout.flush()?;
-        }
-
-        Ok(())
+        Ok(CallToolResult::success(vec![Content::text(json_str)]))
     }
 
-    async fn handle_request(&self, request_str: &str) -> JsonRpcResponse {
-        // Parse JSON-RPC request
-        let request: JsonRpcRequest = match serde_json::from_str(request_str) {
-            Ok(req) => req,
-            Err(e) => {
-                error!("Failed to parse JSON-RPC request: {}", e);
-                return JsonRpcResponse {
-                    jsonrpc: "2.0".to_string(),
-                    id: None,
-                    result: None,
-                    error: Some(JsonRpcError {
-                        code: -32700,
-                        message: "Parse error".to_string(),
-                        data: Some(json!({"details": e.to_string()})),
-                    }),
-                };
-            }
-        };
+    async fn handle_get_token_price(&self, params_value: serde_json::Value) -> Result<CallToolResult, String> {
+        let result = self.get_token_price_tool
+            .execute(params_value)
+            .await
+            .map_err(|e| format!("Failed to get token price: {}", e))?;
 
-        info!("Received request: method={}", request.method);
+        let json_str = serde_json::to_string_pretty(&result)
+            .map_err(|e| format!("Failed to serialize result: {}", e))?;
 
-        // Handle different MCP methods
-        let result = match request.method.as_str() {
-            "initialize" => self.handle_initialize(),
-            "tools/list" => self.handle_list_tools(),
-            "tools/call" => self.handle_tool_call(request.params).await,
-            _ => Err(anyhow::anyhow!("Unknown method: {}", request.method)),
-        };
-
-        match result {
-            Ok(value) => JsonRpcResponse {
-                jsonrpc: "2.0".to_string(),
-                id: request.id,
-                result: Some(value),
-                error: None,
-            },
-            Err(e) => {
-                error!("Error handling request: {}", e);
-                JsonRpcResponse {
-                    jsonrpc: "2.0".to_string(),
-                    id: request.id,
-                    result: None,
-                    error: Some(JsonRpcError {
-                        code: -32603,
-                        message: "Internal error".to_string(),
-                        data: Some(json!({"details": e.to_string()})),
-                    }),
-                }
-            }
-        }
+        Ok(CallToolResult::success(vec![Content::text(json_str)]))
     }
 
-    fn handle_initialize(&self) -> Result<Value> {
-        Ok(json!({
-            "protocolVersion": self.server_info.protocol_version,
-            "serverInfo": {
-                "name": self.server_info.name,
-                "version": self.server_info.version,
-            },
-            "capabilities": {
-                "tools": {}
-            }
-        }))
-    }
+    async fn handle_swap_tokens(&self, params_value: serde_json::Value) -> Result<CallToolResult, String> {
+        let result = self.swap_tokens_tool
+            .execute(params_value)
+            .await
+            .map_err(|e| format!("Failed to simulate swap: {}", e))?;
 
-    fn handle_list_tools(&self) -> Result<Value> {
-        let tools: Vec<Value> = self
-            .tools
-            .values()
-            .map(|tool| {
-                json!({
-                    "name": tool.name(),
-                    "description": tool.description(),
-                    "inputSchema": tool.input_schema(),
-                })
-            })
-            .collect();
+        let json_str = serde_json::to_string_pretty(&result)
+            .map_err(|e| format!("Failed to serialize result: {}", e))?;
 
-        Ok(json!({ "tools": tools }))
-    }
-
-    async fn handle_tool_call(&self, params: Option<Value>) -> Result<Value> {
-        let params = params.context("Missing parameters for tools/call")?;
-
-        let tool_name = params["name"]
-            .as_str()
-            .context("Missing or invalid 'name' in tool call")?;
-
-        let arguments = params["arguments"].clone();
-
-        let tool = self
-            .tools
-            .get(tool_name)
-            .context(format!("Unknown tool: {}", tool_name))?;
-
-        info!("Executing tool: {}", tool_name);
-        let result = tool.execute(arguments).await?;
-
-        Ok(json!({
-            "content": [{
-                "type": "text",
-                "text": serde_json::to_string_pretty(&result)?
-            }]
-        }))
+        Ok(CallToolResult::success(vec![Content::text(json_str)]))
     }
 }
+
+impl ServerHandler for McpServer {
+    fn get_info(&self) -> ServerInfo {
+        ServerInfo {
+            capabilities: ServerCapabilities::builder().enable_tools().build(),
+            server_info: Implementation::from_build_env(),
+            instructions: Some("Ethereum Trading MCP Server - Provides tools for querying balances, getting token prices, and simulating swaps on Ethereum".to_string()),
+            ..Default::default()
+        }
+    }
+
+    async fn initialize(
+        &self,
+        _request: InitializeRequestParam,
+        context: RequestContext<RoleServer>,
+    ) -> Result<InitializeResult, McpError> {
+        info!("Client sent initialize request");
+        Ok(self.get_info())
+    }
+
+    async fn on_initialized(
+        &self,
+        _context: NotificationContext<RoleServer>,
+    ) {
+        info!("Client sent initialized notification - server is ready for requests");
+    }
+
+    async fn list_tools(
+        &self,
+        _request: Option<PaginatedRequestParam>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListToolsResult, McpError> {
+        info!("list_tools called");
+        Ok(ListToolsResult {
+            tools: vec![
+                Tool {
+                    name: self.get_balance_tool.name().to_string().into(),
+                    description: Some(self.get_balance_tool.description().to_string().into()),
+                    input_schema: Arc::new(
+                        self.get_balance_tool.input_schema()
+                            .as_object()
+                            .unwrap()
+                            .clone()
+                    ),
+                    output_schema: None,
+                    annotations: None,
+                    title: None,
+                    icons: None,
+                },
+                Tool {
+                    name: self.get_token_price_tool.name().to_string().into(),
+                    description: Some(self.get_token_price_tool.description().to_string().into()),
+                    input_schema: Arc::new(
+                        self.get_token_price_tool.input_schema()
+                            .as_object()
+                            .unwrap()
+                            .clone()
+                    ),
+                    output_schema: None,
+                    annotations: None,
+                    title: None,
+                    icons: None,
+                },
+                Tool {
+                    name: self.swap_tokens_tool.name().to_string().into(),
+                    description: Some(self.swap_tokens_tool.description().to_string().into()),
+                    input_schema: Arc::new(
+                        self.swap_tokens_tool.input_schema()
+                            .as_object()
+                            .unwrap()
+                            .clone()
+                    ),
+                    output_schema: None,
+                    annotations: None,
+                    title: None,
+                    icons: None,
+                },
+            ],
+            next_cursor: None,
+        })
+    }
+
+    async fn call_tool(
+        &self,
+        request: CallToolRequestParam,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<CallToolResult, McpError> {
+        info!("call_tool called: {}", request.name);
+        let args_value = json!(request.arguments.unwrap_or_default());
+        
+        match request.name.as_ref() {
+            "get_balance" => {
+                self.handle_get_balance(args_value).await
+                    .map_err(|e| McpError::internal_error(e, None))
+            }
+            "get_token_price" => {
+                self.handle_get_token_price(args_value).await
+                    .map_err(|e| McpError::internal_error(e, None))
+            }
+            "swap_tokens" => {
+                self.handle_swap_tokens(args_value).await
+                    .map_err(|e| McpError::internal_error(e, None))
+            }
+            _ => Err(McpError::invalid_params(format!("Unknown tool: {}", request.name), None)),
+        }
+    }
+}
+
+

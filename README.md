@@ -15,6 +15,7 @@ This is a Model Context Protocol (MCP) server in Rust that are able to query bal
 ### Prerequisites
 
 - Rust 1.70+ (`rustup` recommended)
+- Python 3.11+ (if test mcp server automatically)
 - An Ethereum RPC endpoint (Infura, Alchemy, or public endpoint)
 - A private key for transaction signing (for simulation only)
 
@@ -45,25 +46,7 @@ CHAIN_ID=1
 cargo build --release
 ```
 
-5. Run tests:
-
-```bash
-cargo test
-```
-
-And integration tests (optional)
-
-```bash
-cargo test --test integration_tests -- --ignored --nocapture
-```
-
-Test with coverage (optional)
-
-```bash
-cargo tarpaulin --out Html --output-dir coverage --exclude-files "target/*"
-```
-
-6. Run the server:
+5. Run the server:
 
 ```bash
 cargo run --release
@@ -71,15 +54,76 @@ cargo run --release
 
 The server reads JSON-RPC requests from stdin and writes responses to stdout.
 
+## Testing
+
+### Unit Tests
+
+Run the unit test suite:
+
+```bash
+cargo test
+```
+
+### Integration Tests
+
+Run integration tests (requires internet connection to query Ethereum mainnet):
+
+```bash
+cargo test --test integration_tests -- --ignored --nocapture
+```
+
+These tests verify real blockchain interactions including:
+- Querying actual ETH/token balances
+- Fetching real Uniswap prices
+- Simulating swaps on mainnet
+
+### Coverage Report
+
+Generate a code coverage report:
+
+```bash
+cargo tarpaulin --out Html --output-dir coverage --exclude-files "target/*"
+```
+
+### Client Examples
+
+See the [`examples/`](./examples/) directory for client implementations that demonstrate how to use the MCP server:
+
+- **Python MCP Client** ([`examples/python_mcp_client.py`](./examples/python_mcp_client.py)) - Full-featured example showing all available tools
+
+To run the Python example:
+
+```bash
+cd examples
+pip install -r ../requirements.txt
+python python_mcp_client.py
+```
+
+See [`examples/README.md`](./examples/README.md) for more details.
+
 ## Manual Test
 
+You can either test on console app or web UI.
+
+### Console
+
 Check below example MCP tppl calls, then copy & paste request to stdin and check the response from MCP server.
+
+### Web UI
+
+Need to install node.js first.
+
+```bash
+npx @modelcontextprotocol/inspector cargo run --release
+```
+
+And then click connect, list tools, tool buttons to test.
 
 ## Example MCP Tool Calls
 
 You need to minify the json before paste to stdin.
 
-Useful tool to minify: [https://codebeautify.org/jsonminifier](JSON Monifier)
+Useful tool to minify: [JSON Monifier](https://codebeautify.org/jsonminifier)
 
 ### Initialize
 
@@ -107,6 +151,16 @@ Useful tool to minify: [https://codebeautify.org/jsonminifier](JSON Monifier)
   }
 }
 ```
+
+### Initialized Notification
+
+**IMPORTANT**: After receiving the initialize response, you MUST send this notification:
+
+```json
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+```
+
+This notification has no response. It signals that the client is ready to begin normal operations.
 
 ### List Tools
 
