@@ -64,6 +64,10 @@ cargo run --release
 
 The server reads JSON-RPC requests from stdin and writes responses to stdout.
 
+## Manual Test
+
+Check below example MCP tppl calls, then copy & paste request to stdin and check the response from MCP server.
+
 ## Example MCP Tool Calls
 
 You need to minify the json before paste to stdin.
@@ -215,11 +219,3 @@ Etherscan [url](https://etherscan.io/address/0xd8dA6BF26964aF9D7eEd9e03E53415D37
 6. **Error Handling:** While comprehensive, some edge cases (network failures, invalid tokens) may not have perfect user-facing error messages.
 
 7. **Rate Limiting:** No built-in rate limiting for RPC calls. Heavy usage may hit provider limits.
-
-## Testing
-
-Run the test suite:
-
-```bash
-cargo test
-```
