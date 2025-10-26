@@ -51,6 +51,11 @@ cargo build --release
 cargo test
 ```
 
+And integration tests (optional)
+```bash
+cargo test --test integration_tests -- --ignored --nocapture
+```
+
 6. Run the server:
 
 ```bash
