@@ -3,12 +3,12 @@ use crate::ethereum::{EthereumClient, UniswapV2Router};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use ethers::prelude::*;
+use rust_decimal::prelude::FromPrimitive;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::sync::Arc;
 use std::str::FromStr;
-use rust_decimal::Decimal;
-use rust_decimal::prelude::FromPrimitive;
+use std::sync::Arc;
 
 pub struct SwapTokensTool {
     client: Arc<EthereumClient>,
@@ -83,19 +83,22 @@ impl Tool for SwapTokensTool {
     }
 
     async fn execute(&self, params: Value) -> Result<Value> {
-        let params: SwapTokensParams = serde_json::from_value(params)
-            .context("Invalid parameters for swap_tokens")?;
+        let params: SwapTokensParams =
+            serde_json::from_value(params).context("Invalid parameters for swap_tokens")?;
 
-        let from_token: Address = params.from_token.parse()
+        let from_token: Address = params
+            .from_token
+            .parse()
             .context("Invalid from_token address")?;
-        
-        let to_token: Address = params.to_token.parse()
+
+        let to_token: Address = params
+            .to_token
+            .parse()
             .context("Invalid to_token address")?;
 
         // Parse amount - assume 18 decimals for simplicity
         // In production, you'd query the token's decimals
-        let amount_decimal = Decimal::from_str(&params.amount)
-            .context("Invalid amount")?;
+        let amount_decimal = Decimal::from_str(&params.amount).context("Invalid amount")?;
         let amount_wei = amount_decimal * Decimal::from(10u64.pow(18));
         let amount_in = U256::from_dec_str(&amount_wei.to_string())
             .context("Failed to convert amount to U256")?;
@@ -104,30 +107,28 @@ impl Tool for SwapTokensTool {
         let wallet_address = self.client.get_wallet().address();
 
         // Simulate the swap
-        let simulation = self.uniswap.simulate_swap(
-            from_token,
-            to_token,
-            amount_in,
-            wallet_address,
-        ).await?;
+        let simulation = self
+            .uniswap
+            .simulate_swap(from_token, to_token, amount_in, wallet_address)
+            .await?;
 
         // Calculate minimum amount out with slippage
         let slippage_multiplier = 1.0 - (params.slippage_tolerance / 100.0);
         let amount_out_decimal = Decimal::from_str(&simulation.amount_out.to_string())?;
-        let min_amount_out = amount_out_decimal * Decimal::from_f64(slippage_multiplier)
-            .unwrap_or(Decimal::ONE);
+        let min_amount_out =
+            amount_out_decimal * Decimal::from_f64(slippage_multiplier).unwrap_or(Decimal::ONE);
 
         // Convert amounts to human-readable format (assuming 18 decimals)
         let estimated_out = amount_out_decimal / Decimal::from(10u64.pow(18));
         let minimum_out = min_amount_out / Decimal::from(10u64.pow(18));
 
         // Convert gas price to Gwei
-        let gas_price_gwei = Decimal::from_str(&simulation.gas_price.to_string())? 
-            / Decimal::from(10u64.pow(9));
+        let gas_price_gwei =
+            Decimal::from_str(&simulation.gas_price.to_string())? / Decimal::from(10u64.pow(9));
 
         // Convert gas cost to ETH
-        let gas_cost_eth = Decimal::from_str(&simulation.gas_cost.to_string())?
-            / Decimal::from(10u64.pow(18));
+        let gas_cost_eth =
+            Decimal::from_str(&simulation.gas_cost.to_string())? / Decimal::from(10u64.pow(18));
 
         let result = SwapTokensResult {
             from_token: params.from_token,

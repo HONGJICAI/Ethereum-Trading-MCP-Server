@@ -10,12 +10,10 @@ pub struct Config {
 
 impl Config {
     pub fn from_env() -> Result<Self> {
-        let eth_rpc_url = env::var("ETH_RPC_URL")
-            .context("ETH_RPC_URL not set in environment")?;
-        
-        let private_key = env::var("PRIVATE_KEY")
-            .context("PRIVATE_KEY not set in environment")?;
-        
+        let eth_rpc_url = env::var("ETH_RPC_URL").context("ETH_RPC_URL not set in environment")?;
+
+        let private_key = env::var("PRIVATE_KEY").context("PRIVATE_KEY not set in environment")?;
+
         let chain_id = env::var("CHAIN_ID")
             .unwrap_or_else(|_| "1".to_string())
             .parse()

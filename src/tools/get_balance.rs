@@ -59,19 +59,23 @@ impl Tool for GetBalanceTool {
     }
 
     async fn execute(&self, params: Value) -> Result<Value> {
-        let params: GetBalanceParams = serde_json::from_value(params)
-            .context("Invalid parameters for get_balance")?;
+        let params: GetBalanceParams =
+            serde_json::from_value(params).context("Invalid parameters for get_balance")?;
 
-        let address: Address = params.address.parse()
-            .context("Invalid wallet address")?;
+        let address: Address = params.address.parse().context("Invalid wallet address")?;
 
         let result = if let Some(token_addr_str) = params.token_address {
             // Get ERC20 token balance
-            let token_address: Address = token_addr_str.parse()
-                .context("Invalid token address")?;
+            let token_address: Address = token_addr_str.parse().context("Invalid token address")?;
 
-            let (balance, decimals) = self.client.get_token_balance(token_address, address).await?;
-            let symbol = self.client.get_token_symbol(token_address).await
+            let (balance, decimals) = self
+                .client
+                .get_token_balance(token_address, address)
+                .await?;
+            let symbol = self
+                .client
+                .get_token_symbol(token_address)
+                .await
                 .unwrap_or_else(|_| "UNKNOWN".to_string());
 
             GetBalanceResult {

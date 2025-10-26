@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 use ethers::prelude::*;
-use std::sync::Arc;
 use rust_decimal::Decimal;
 use std::str::FromStr;
+use std::sync::Arc;
 
 pub struct EthereumClient {
     provider: Arc<Provider<Http>>,
@@ -12,9 +12,9 @@ pub struct EthereumClient {
 
 impl EthereumClient {
     pub async fn new(rpc_url: &str, private_key: &str, chain_id: u64) -> Result<Self> {
-        let provider = Provider::<Http>::try_from(rpc_url)
-            .context("Failed to connect to Ethereum RPC")?;
-        
+        let provider =
+            Provider::<Http>::try_from(rpc_url).context("Failed to connect to Ethereum RPC")?;
+
         let wallet = private_key
             .parse::<LocalWallet>()
             .context("Failed to parse private key")?
@@ -37,7 +37,8 @@ impl EthereumClient {
 
     /// Get ETH balance for an address
     pub async fn get_eth_balance(&self, address: Address) -> Result<Decimal> {
-        let balance = self.provider
+        let balance = self
+            .provider
             .get_balance(address, None)
             .await
             .context("Failed to get ETH balance")?;
@@ -51,7 +52,11 @@ impl EthereumClient {
     }
 
     /// Get ERC20 token balance for an address
-    pub async fn get_token_balance(&self, token_address: Address, wallet_address: Address) -> Result<(Decimal, u8)> {
+    pub async fn get_token_balance(
+        &self,
+        token_address: Address,
+        wallet_address: Address,
+    ) -> Result<(Decimal, u8)> {
         // ERC20 ABI for balanceOf and decimals
         abigen!(
             ERC20,

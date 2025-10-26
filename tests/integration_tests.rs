@@ -15,13 +15,10 @@ async fn test_get_balance_real_eth() {
         chain_id: 1,
     };
 
-    let client = ethereum::EthereumClient::new(
-        &config.eth_rpc_url,
-        &config.private_key,
-        config.chain_id,
-    )
-    .await
-    .expect("Failed to create Ethereum client");
+    let client =
+        ethereum::EthereumClient::new(&config.eth_rpc_url, &config.private_key, config.chain_id)
+            .await
+            .expect("Failed to create Ethereum client");
 
     // Vitalik's address
     let vitalik_address = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
@@ -48,13 +45,10 @@ async fn test_get_balance_real_usdc() {
         chain_id: 1,
     };
 
-    let client = ethereum::EthereumClient::new(
-        &config.eth_rpc_url,
-        &config.private_key,
-        config.chain_id,
-    )
-    .await
-    .expect("Failed to create Ethereum client");
+    let client =
+        ethereum::EthereumClient::new(&config.eth_rpc_url, &config.private_key, config.chain_id)
+            .await
+            .expect("Failed to create Ethereum client");
 
     // Binance hot wallet
     let binance_address = "0x28C6c06298d514Db089934071355E5743bf21d60"
@@ -73,7 +67,10 @@ async fn test_get_balance_real_usdc() {
 
     assert_eq!(decimals, 6); // USDC has 6 decimals
     assert!(balance > rust_decimal::Decimal::ZERO); // Binance should have USDC
-    println!("✓ Binance USDC balance: {} USDC (decimals: {})", balance, decimals);
+    println!(
+        "✓ Binance USDC balance: {} USDC (decimals: {})",
+        balance, decimals
+    );
 }
 
 #[tokio::test]
@@ -85,13 +82,10 @@ async fn test_get_token_symbol_real() {
         chain_id: 1,
     };
 
-    let client = ethereum::EthereumClient::new(
-        &config.eth_rpc_url,
-        &config.private_key,
-        config.chain_id,
-    )
-    .await
-    .expect("Failed to create Ethereum client");
+    let client =
+        ethereum::EthereumClient::new(&config.eth_rpc_url, &config.private_key, config.chain_id)
+            .await
+            .expect("Failed to create Ethereum client");
 
     // USDC contract
     let usdc_address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
@@ -116,13 +110,10 @@ async fn test_uniswap_price_real() {
         chain_id: 1,
     };
 
-    let client = ethereum::EthereumClient::new(
-        &config.eth_rpc_url,
-        &config.private_key,
-        config.chain_id,
-    )
-    .await
-    .expect("Failed to create Ethereum client");
+    let client =
+        ethereum::EthereumClient::new(&config.eth_rpc_url, &config.private_key, config.chain_id)
+            .await
+            .expect("Failed to create Ethereum client");
 
     let uniswap = ethereum::UniswapV2Router::new(client.get_provider());
 
@@ -130,14 +121,14 @@ async fn test_uniswap_price_real() {
     let weth_address = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
         .parse()
         .expect("Invalid WETH address");
-    
+
     let usdc_address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
         .parse()
         .expect("Invalid USDC address");
 
     // Query price for 1 WETH (18 decimals)
     let one_weth = ethers::types::U256::from(10u64.pow(18));
-    
+
     let price = uniswap
         .get_price(weth_address, usdc_address, one_weth)
         .await
@@ -146,7 +137,7 @@ async fn test_uniswap_price_real() {
     // ETH price should be between $100 and $100,000 (reasonable bounds)
     // Adjust for USDC having 6 decimals
     let adjusted_price = price * rust_decimal::Decimal::from(10u64.pow(12));
-    
+
     assert!(adjusted_price > rust_decimal::Decimal::from(100));
     assert!(adjusted_price < rust_decimal::Decimal::from(100000));
     println!("✓ 1 WETH = {} USDC", adjusted_price);
@@ -162,13 +153,9 @@ async fn test_uniswap_swap_simulation_real() {
     };
 
     let client = std::sync::Arc::new(
-        ethereum::EthereumClient::new(
-            &config.eth_rpc_url,
-            &config.private_key,
-            config.chain_id,
-        )
-        .await
-        .expect("Failed to create Ethereum client")
+        ethereum::EthereumClient::new(&config.eth_rpc_url, &config.private_key, config.chain_id)
+            .await
+            .expect("Failed to create Ethereum client"),
     );
 
     let uniswap = ethereum::UniswapV2Router::new(client.get_provider());
@@ -177,7 +164,7 @@ async fn test_uniswap_swap_simulation_real() {
     let weth_address = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
         .parse()
         .expect("Invalid WETH address");
-    
+
     let usdc_address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
         .parse()
         .expect("Invalid USDC address");
@@ -193,24 +180,30 @@ async fn test_uniswap_swap_simulation_real() {
     // Should get some USDC out (at least $100 worth)
     let min_usdc = ethers::types::U256::from(100 * 10u64.pow(6)); // 100 USDC
     assert!(simulation.amount_out > min_usdc);
-    
+
     // Gas estimate should be reasonable (between 100k and 500k gas)
     assert!(simulation.gas_estimate > ethers::types::U256::from(100000));
     assert!(simulation.gas_estimate < ethers::types::U256::from(500000));
-    
+
     println!("✓ Swap simulation:");
     println!("  Input: 1 WETH");
-    println!("  Output: {} USDC", simulation.amount_out.as_u128() as f64 / 1e6);
+    println!(
+        "  Output: {} USDC",
+        simulation.amount_out.as_u128() as f64 / 1e6
+    );
     println!("  Gas estimate: {}", simulation.gas_estimate);
-    println!("  Gas price: {} gwei", simulation.gas_price.as_u128() as f64 / 1e9);
+    println!(
+        "  Gas price: {} gwei",
+        simulation.gas_price.as_u128() as f64 / 1e9
+    );
 }
 
 #[tokio::test]
 #[ignore]
 async fn test_mcp_get_balance_tool_real() {
-    use tools::Tool;
     use serde_json::json;
-    
+    use tools::Tool;
+
     let config = config::Config {
         eth_rpc_url: "https://eth.llamarpc.com".to_string(),
         private_key: "0000000000000000000000000000000000000000000000000000000000000001".to_string(),
@@ -218,13 +211,9 @@ async fn test_mcp_get_balance_tool_real() {
     };
 
     let client = std::sync::Arc::new(
-        ethereum::EthereumClient::new(
-            &config.eth_rpc_url,
-            &config.private_key,
-            config.chain_id,
-        )
-        .await
-        .expect("Failed to create Ethereum client")
+        ethereum::EthereumClient::new(&config.eth_rpc_url, &config.private_key, config.chain_id)
+            .await
+            .expect("Failed to create Ethereum client"),
     );
 
     let tool = tools::GetBalanceTool::new(client);
@@ -242,6 +231,9 @@ async fn test_mcp_get_balance_tool_real() {
     assert!(result.get("balance").is_some());
     assert!(result.get("symbol").is_some());
     assert_eq!(result.get("symbol").unwrap().as_str().unwrap(), "ETH");
-    
-    println!("✓ MCP Tool Result: {}", serde_json::to_string_pretty(&result).unwrap());
+
+    println!(
+        "✓ MCP Tool Result: {}",
+        serde_json::to_string_pretty(&result).unwrap()
+    );
 }

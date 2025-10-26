@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 use ethers::prelude::*;
-use std::sync::Arc;
 use rust_decimal::Decimal;
 use std::str::FromStr;
+use std::sync::Arc;
 
 // Uniswap V2 Router address on Ethereum mainnet
 const UNISWAP_V2_ROUTER: &str = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
@@ -63,13 +63,11 @@ impl UniswapV2Router {
         );
 
         // Estimate gas
-        let gas_estimate = swap_call
-            .estimate_gas()
-            .await
-            .unwrap_or(U256::from(200000)); // Default gas estimate
+        let gas_estimate = swap_call.estimate_gas().await.unwrap_or(U256::from(200000)); // Default gas estimate
 
         // Get current gas price
-        let gas_price = self.provider
+        let gas_price = self
+            .provider
             .get_gas_price()
             .await
             .unwrap_or(U256::from(50_000_000_000u64)); // 50 gwei default
@@ -113,7 +111,7 @@ impl UniswapV2Router {
         // Calculate price ratio
         let amount_in_decimal = Decimal::from_str(&amount_in.to_string())?;
         let amount_out_decimal = Decimal::from_str(&amount_out.to_string())?;
-        
+
         let price = if amount_in_decimal.is_zero() {
             Decimal::ZERO
         } else {

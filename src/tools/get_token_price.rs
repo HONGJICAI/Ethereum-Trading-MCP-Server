@@ -3,10 +3,10 @@ use crate::ethereum::{EthereumClient, UniswapV2Router};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use ethers::prelude::*;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::sync::Arc;
-use rust_decimal::Decimal;
 
 // WETH address on Ethereum mainnet
 const WETH_ADDRESS: &str = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
@@ -72,10 +72,12 @@ impl Tool for GetTokenPriceTool {
     }
 
     async fn execute(&self, params: Value) -> Result<Value> {
-        let params: GetTokenPriceParams = serde_json::from_value(params)
-            .context("Invalid parameters for get_token_price")?;
+        let params: GetTokenPriceParams =
+            serde_json::from_value(params).context("Invalid parameters for get_token_price")?;
 
-        let token_address: Address = params.token_address.parse()
+        let token_address: Address = params
+            .token_address
+            .parse()
             .context("Invalid token address")?;
 
         // Use 1 token as the base amount (with proper decimals)
@@ -84,12 +86,17 @@ impl Tool for GetTokenPriceTool {
         let price = if params.quote_currency.to_uppercase() == "ETH" {
             // Get price in WETH
             let weth_address: Address = WETH_ADDRESS.parse().unwrap();
-            self.uniswap.get_price(token_address, weth_address, amount_in).await?
+            self.uniswap
+                .get_price(token_address, weth_address, amount_in)
+                .await?
         } else {
             // Get price in USDC (which represents USD, 6 decimals)
             let usdc_address: Address = USDC_ADDRESS.parse().unwrap();
-            let price_ratio = self.uniswap.get_price(token_address, usdc_address, amount_in).await?;
-            
+            let price_ratio = self
+                .uniswap
+                .get_price(token_address, usdc_address, amount_in)
+                .await?;
+
             // Adjust for USDC having 6 decimals vs assumed 18
             price_ratio * Decimal::from(10u64.pow(12))
         };

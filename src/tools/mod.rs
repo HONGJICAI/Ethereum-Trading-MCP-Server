@@ -6,9 +6,9 @@ pub use get_balance::GetBalanceTool;
 pub use get_token_price::GetTokenPriceTool;
 pub use swap_tokens::SwapTokensTool;
 
+use anyhow::Result;
 use async_trait::async_trait;
 use serde_json::Value;
-use anyhow::Result;
 
 #[async_trait]
 pub trait Tool: Send + Sync {

@@ -66,10 +66,16 @@ impl McpServer {
         let get_balance = Box::new(GetBalanceTool::new(Arc::clone(&client)));
         tools.insert(get_balance.name().to_string(), get_balance);
 
-        let get_token_price = Box::new(GetTokenPriceTool::new(Arc::clone(&client), Arc::clone(&uniswap)));
+        let get_token_price = Box::new(GetTokenPriceTool::new(
+            Arc::clone(&client),
+            Arc::clone(&uniswap),
+        ));
         tools.insert(get_token_price.name().to_string(), get_token_price);
 
-        let swap_tokens = Box::new(SwapTokensTool::new(Arc::clone(&client), Arc::clone(&uniswap)));
+        let swap_tokens = Box::new(SwapTokensTool::new(
+            Arc::clone(&client),
+            Arc::clone(&uniswap),
+        ));
         tools.insert(swap_tokens.name().to_string(), swap_tokens);
 
         let server_info = ServerInfo {
@@ -89,14 +95,14 @@ impl McpServer {
 
         for line in stdin.lock().lines() {
             let line = line.context("Failed to read line from stdin")?;
-            
+
             if line.trim().is_empty() {
                 continue;
             }
 
             let response = self.handle_request(&line).await;
             let response_json = serde_json::to_string(&response)?;
-            
+
             writeln!(stdout, "{}", response_json)?;
             stdout.flush()?;
         }
@@ -187,11 +193,11 @@ impl McpServer {
 
     async fn handle_tool_call(&self, params: Option<Value>) -> Result<Value> {
         let params = params.context("Missing parameters for tools/call")?;
-        
+
         let tool_name = params["name"]
             .as_str()
             .context("Missing or invalid 'name' in tool call")?;
-        
+
         let arguments = params["arguments"].clone();
 
         let tool = self
@@ -210,4 +216,3 @@ impl McpServer {
         }))
     }
 }
-
