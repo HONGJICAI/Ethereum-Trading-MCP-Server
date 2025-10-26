@@ -7,6 +7,7 @@ mod tools;
 mod tests;
 
 use anyhow::Result;
+use rmcp::ServiceExt;
 use tracing::info;
 use tracing_subscriber;
 
@@ -21,9 +22,13 @@ async fn main() -> Result<()> {
     dotenv::dotenv().ok();
     let config = config::Config::from_env()?;
 
-    // Start MCP server
+    // Create MCP server
     let server = mcp::McpServer::new(config).await?;
-    server.run().await?;
+
+    // Serve over stdio using tokio stdin/stdout
+    info!("Server ready, listening on stdio");
+    let transport = (tokio::io::stdin(), tokio::io::stdout());
+    server.serve(transport).await?;
 
     Ok(())
 }

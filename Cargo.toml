@@ -23,6 +23,8 @@ anyhow = "1.0"
 hex = "0.4"
 async-trait = "0.1"
 dotenv = "0.15"
+rmcp = { version = "0.4", features = ["macros", "server"] }
+schemars = "1.0"
 
 [dev-dependencies]
 mockito = "1.2"
