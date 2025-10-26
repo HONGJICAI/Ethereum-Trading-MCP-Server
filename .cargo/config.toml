@@ -1,0 +1,23 @@
+# Cargo configuration for the project
+
+[build]
+# Use incremental compilation for faster builds during development
+incremental = true
+
+[target.x86_64-unknown-linux-gnu]
+# Use lld linker on Linux for faster linking (optional, requires lld)
+# rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+[target.x86_64-pc-windows-msvc]
+# Use lld linker on Windows for faster linking (optional)
+# rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+[alias]
+# Convenient aliases for common tasks
+b = "build"
+br = "build --release"
+t = "test"
+tr = "test --release"
+c = "check"
+lint = "clippy --all-targets --all-features -- -D warnings"
+fmt-check = "fmt --all -- --check"
