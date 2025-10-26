@@ -2,6 +2,7 @@
 mod tests {
     use rust_decimal::Decimal;
     use std::str::FromStr;
+    use serial_test::serial;
 
     // ============ Decimal Conversion Tests ============
     
@@ -54,6 +55,7 @@ mod tests {
     // ============ Config Tests ============
 
     #[test]
+    #[serial]
     fn test_config_from_env() {
         use crate::config::Config;
         std::env::set_var("ETH_RPC_URL", "https://eth.llamarpc.com");
@@ -69,6 +71,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_config_default_chain_id() {
         use crate::config::Config;
         std::env::set_var("ETH_RPC_URL", "https://eth.llamarpc.com");
@@ -83,6 +86,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_config_missing_rpc_url() {
         use crate::config::Config;
         std::env::remove_var("ETH_RPC_URL");
@@ -96,6 +100,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_config_missing_private_key() {
         use crate::config::Config;
         std::env::set_var("ETH_RPC_URL", "https://eth.llamarpc.com");
@@ -106,6 +111,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_config_invalid_chain_id() {
         use crate::config::Config;
         std::env::set_var("ETH_RPC_URL", "https://eth.llamarpc.com");
@@ -120,6 +126,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_config_different_networks() {
         use crate::config::Config;
         
