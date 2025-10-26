@@ -150,7 +150,7 @@ jobs:
           ETH_RPC_URL: https://eth.llamarpc.com
           PRIVATE_KEY: "0000000000000000000000000000000000000000000000000000000000000001"
           CHAIN_ID: "1"
-        run: python python_client_example.py
+        run: python examples/python_mcp_client.py
         timeout-minutes: 5
 
   coverage:

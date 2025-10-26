@@ -46,25 +46,7 @@ CHAIN_ID=1
 cargo build --release
 ```
 
-5. Run tests:
-
-```bash
-cargo test
-```
-
-And integration tests (optional)
-
-```bash
-cargo test --test integration_tests -- --ignored --nocapture
-```
-
-Test with coverage (optional)
-
-```bash
-cargo tarpaulin --out Html --output-dir coverage --exclude-files "target/*"
-```
-
-6. Run the server:
+5. Run the server:
 
 ```bash
 cargo run --release
@@ -72,23 +54,52 @@ cargo run --release
 
 The server reads JSON-RPC requests from stdin and writes responses to stdout.
 
-## Automatic Test
+## Testing
 
-Use python mcp client to test our mcp server.
+### Unit Tests
 
-1. Install python.
-
-2. Install dependency.
+Run the unit test suite:
 
 ```bash
-pip install "mcp[cli]"
+cargo test
 ```
 
-3. Run python mcp client.
+### Integration Tests
+
+Run integration tests (requires internet connection to query Ethereum mainnet):
 
 ```bash
-python .\python_client_example.py
+cargo test --test integration_tests -- --ignored --nocapture
 ```
+
+These tests verify real blockchain interactions including:
+- Querying actual ETH/token balances
+- Fetching real Uniswap prices
+- Simulating swaps on mainnet
+
+### Coverage Report
+
+Generate a code coverage report:
+
+```bash
+cargo tarpaulin --out Html --output-dir coverage --exclude-files "target/*"
+```
+
+### Client Examples
+
+See the [`examples/`](./examples/) directory for client implementations that demonstrate how to use the MCP server:
+
+- **Python MCP Client** ([`examples/python_mcp_client.py`](./examples/python_mcp_client.py)) - Full-featured example showing all available tools
+
+To run the Python example:
+
+```bash
+cd examples
+pip install -r ../requirements.txt
+python python_mcp_client.py
+```
+
+See [`examples/README.md`](./examples/README.md) for more details.
 
 ## Manual Test
 
