@@ -100,7 +100,9 @@ impl Tool for SwapTokensTool {
         // In production, you'd query the token's decimals
         let amount_decimal = Decimal::from_str(&params.amount).context("Invalid amount")?;
         let amount_wei = amount_decimal * Decimal::from(10u64.pow(18));
-        let amount_in = U256::from_dec_str(&amount_wei.to_string())
+        // Round to remove any decimal places and convert to integer string
+        let amount_wei_rounded = amount_wei.round();
+        let amount_in = U256::from_dec_str(&amount_wei_rounded.to_string())
             .context("Failed to convert amount to U256")?;
 
         // Get wallet address

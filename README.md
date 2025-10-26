@@ -18,36 +18,41 @@ This is a Model Context Protocol (MCP) server in Rust that are able to query bal
 - An Ethereum RPC endpoint (Infura, Alchemy, or public endpoint)
 - A private key for transaction signing (for simulation only)
 
-
 ### Installation
 
 1. Clone the repository
 
 2. Copy the example environment file:
+
 ```bash
 cp .env.example .env
 ```
 
-3. Edit `.env` with your configuration:
+3. Edit `.env` with your configuration, or use below testing configuration:
+
 ```env
-ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY
-PRIVATE_KEY=your_private_key_here_without_0x_prefix
+# Using free public endpoint (may be slower than paid services)
+ETH_RPC_URL=https://eth.llamarpc.com
+PRIVATE_KEY=0000000000000000000000000000000000000000000000000000000000000001
 CHAIN_ID=1
 ```
 
 **⚠️ Security Warning:** Never commit your real private key! The `.env` file is gitignored for safety.
 
 4. Build the project:
+
 ```bash
 cargo build --release
 ```
 
 5. Run tests:
+
 ```bash
 cargo test
 ```
 
 6. Run the server:
+
 ```bash
 cargo run --release
 ```
@@ -63,23 +68,13 @@ Useful tool to minify: [https://codebeautify.org/jsonminifier](JSON Monifier)
 ### Initialize
 
 **Request:**
+
 ```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "2024-11-05",
-    "capabilities": {},
-    "clientInfo": {
-      "name": "example-client",
-      "version": "1.0.0"
-    }
-  }
-}
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"example-client","version":"1.0.0"}}}
 ```
 
 **Response:**
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -100,15 +95,13 @@ Useful tool to minify: [https://codebeautify.org/jsonminifier](JSON Monifier)
 ### List Tools
 
 **Request:**
+
 ```json
-{
-  "jsonrpc": "2.0",
-  "id": 2,
-  "method": "tools/list"
-}
+{"jsonrpc":"2.0","id":2,"method":"tools/list"}
 ```
 
 **Response:**
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -140,22 +133,16 @@ Useful tool to minify: [https://codebeautify.org/jsonminifier](JSON Monifier)
 
 ### Call get_balance
 
+Etherscan [url](https://etherscan.io/address/0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045)
+
 **Request:**
+
 ```json
-{
-  "jsonrpc": "2.0",
-  "id": 3,
-  "method": "tools/call",
-  "params": {
-    "name": "get_balance",
-    "arguments": {
-      "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
-    }
-  }
-}
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_balance","arguments":{"address":"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"}}}
 ```
 
 **Response:**
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -164,7 +151,7 @@ Useful tool to minify: [https://codebeautify.org/jsonminifier](JSON Monifier)
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"address\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb\",\n  \"balance\": \"1.5\",\n  \"symbol\": \"ETH\",\n  \"decimals\": 18\n}"
+        "text": "{\n  \"address\": \"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045\",\n  \"balance\": \"3.7\",\n  \"symbol\": \"ETH\",\n  \"decimals\": 18\n}"
       }
     ]
   }
@@ -174,24 +161,13 @@ Useful tool to minify: [https://codebeautify.org/jsonminifier](JSON Monifier)
 ### Call swap_tokens (Simulation)
 
 **Request:**
+
 ```json
-{
-  "jsonrpc": "2.0",
-  "id": 4,
-  "method": "tools/call",
-  "params": {
-    "name": "swap_tokens",
-    "arguments": {
-      "from_token": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-      "to_token": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-      "amount": "1.0",
-      "slippage_tolerance": 0.5
-    }
-  }
-}
+{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"swap_tokens","arguments":{"from_token":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","to_token":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48","amount":"1.0","slippage_tolerance":0.5}}}
 ```
 
 **Response:**
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -238,6 +214,7 @@ Useful tool to minify: [https://codebeautify.org/jsonminifier](JSON Monifier)
 ## Testing
 
 Run the test suite:
+
 ```bash
 cargo test
 ```
