@@ -1,0 +1,2 @@
+# Python dependencies for MCP client example
+mcp[cli]>=1.0.0

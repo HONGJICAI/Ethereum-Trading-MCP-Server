@@ -23,7 +23,7 @@ anyhow = "1.0"
 hex = "0.4"
 async-trait = "0.1"
 dotenv = "0.15"
-rmcp = { version = "0.4", features = ["macros", "server"] }
+rmcp = { version = "0.8.3", features = ["macros", "server","transport-io"] }
 schemars = "1.0"
 
 [dev-dependencies]

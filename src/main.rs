@@ -7,14 +7,18 @@ mod tools;
 mod tests;
 
 use anyhow::Result;
-use rmcp::ServiceExt;
+use rmcp::{ServiceExt, transport::stdio};
 use tracing::info;
 use tracing_subscriber;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Initialize logging
-    tracing_subscriber::fmt().with_env_filter("info").init();
+    // Initialize logging - MUST write to stderr, not stdout!
+    // stdout is reserved for JSON-RPC protocol messages
+    tracing_subscriber::fmt()
+        .with_env_filter("info")
+        .with_writer(std::io::stderr)
+        .init();
 
     info!("Starting Ethereum Trading MCP Server");
 
@@ -27,8 +31,11 @@ async fn main() -> Result<()> {
 
     // Serve over stdio using tokio stdin/stdout
     info!("Server ready, listening on stdio");
-    let transport = (tokio::io::stdin(), tokio::io::stdout());
-    server.serve(transport).await?;
+    let service = server.serve(stdio()).await.inspect_err(|e| {
+        tracing::error!("serving error: {:?}", e);
+    })?;
+
+    service.waiting().await?;
 
     Ok(())
 }

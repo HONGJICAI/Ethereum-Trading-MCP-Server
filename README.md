@@ -73,7 +73,19 @@ The server reads JSON-RPC requests from stdin and writes responses to stdout.
 
 ## Manual Test
 
+You can either test on console app or web UI.
+
+### Console
+
 Check below example MCP tppl calls, then copy & paste request to stdin and check the response from MCP server.
+
+### Web UI
+
+Need to install node.js first.
+
+```bash
+npx @modelcontextprotocol/inspector cargo run --release
+```
 
 ## Example MCP Tool Calls
 
@@ -107,6 +119,16 @@ Useful tool to minify: [https://codebeautify.org/jsonminifier](JSON Monifier)
   }
 }
 ```
+
+### Initialized Notification
+
+**IMPORTANT**: After receiving the initialize response, you MUST send this notification:
+
+```json
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+```
+
+This notification has no response. It signals that the client is ready to begin normal operations.
 
 ### List Tools
 
